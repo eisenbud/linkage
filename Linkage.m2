@@ -1,3 +1,84 @@
+-*newPackage(
+    "Linkage",
+    Version => "0.1",
+    Date => "",
+    Headline => "",
+    Authors => {{ Name => "", Email => "", HomePage => ""}},
+    Keywords => {""},
+    AuxiliaryFiles => false,
+    PackageExports => {
+"MonomialOrbits"
+"DGAlgebras"
+"LocalRings"
+"AInfinity"
+"CompleteIntersectionResolutions"},
+DebuggingMode => false
+    )
+
+export {}
+*-
+-* Code section *-
+
+
+-* Documentation section *-
+-*beginDocumentation()
+
+doc ///
+Key
+  Linkage
+Headline
+Description
+  Text
+  Tree
+  Example
+  CannedExample
+Acknowledgement
+Contributors
+References
+Caveat
+SeeAlso
+Subnodes
+///
+
+doc ///
+Key
+Headline
+Usage
+Inputs
+Outputs
+Consequences
+  Item
+Description
+  Text
+  Example
+  CannedExample
+  Code
+  Pre
+ExampleFiles
+Contributors
+References
+Caveat
+SeeAlso
+///
+
+-* Test section *-
+TEST /// -* [insert short title for this test] *-
+-- test code and assertions here
+-- may have as many TEST sections as needed
+///
+-*
+end--
+
+-* Development section *-
+-*restart
+debug needsPackage "Linkage"
+check "Linkage"
+
+uninstallPackage "Linkage"
+restart
+installPackage "Linkage"
+viewHelp "Linkage"
+*-
 
 -*
 Basic questions:
@@ -54,6 +135,11 @@ b. In the monomial case, is there a strengthening of 4 using the multi-grading?
 
 Construction: start with I a licci gen ci; J = geometric link; then I+J is gor and licci (of grade = grade I +1).
 *-
+isGenericallyCI = I -> (
+    P := presentation module (I' = trim I);
+    c := codim I';
+    n := numgens I';
+    c<codim minors (n-c, P))
 
 isStronglyCM = method()
 isStronglyCM Ideal := Boolean => I' -> (
@@ -79,6 +165,7 @@ isExtCM Ideal := Boolean => I' -> (
 	if pdim Ext^i(R,R) > g then return false);
     true)
 isExtCM Ring := R -> isExtCM ideal R
+
 
 --In the artin case, 
 --degree Ext^i(R,R) = binomial(grade I,i) * degree R 
@@ -154,16 +241,45 @@ monomialLink = I -> (
   
 
 isLicciMonomialIdeal = method()
-isLicciMonomialIdeal Ideal := Boolean => I' ->(
-    I := I';
+isLicciMonomialIdeal Ideal := Ideal => I' ->(
+    --double link
+    I := monomialIdeal I';
     while true do(
     (pure,mix) := pureAndMixed I;
-    if codim mix >1 then return mix;
-    if mix == ideal(0_(ring I')) then return true;
-    I = monomialLink I;
+    if codim mix >1 or mix == 0 then return I else
+    I = I:gcd mix_*))
+
+
+///
+restart
+kk = ZZ/101
+T = kk[a,b,c]
+I = ideal"a2b,abc3 "
+I = monomialIdeal(a^4,b^4,a*b^2*c,b^3*c,a^2*c^2,a*b*c^2,b^2*c^2,a*c^3,b*c^3,c^4)
+(p,m) = pureAndMixed I
+
+gcd m_*
+weakPolarization I
+I
+isLicciMonomialIdeal I
+pureAndMixed I
+///
+
+weakPolarization = method(Options => {VariableName => "X"})
+weakPolarization Ideal := o -> I ->(
+    I' := if class I === Ideal then monomialIdeal I else I;
+    G0 := gens ring I';
+    n := #G0;
+    X := o#VariableName;
+    G1 := append(G0, X);
+    S := coefficientRing ring I [G1];
+    J := polarize I';
+    R := ring J;
+    V := gens R;
+    phi := map(S,R,apply(V, v -> S_((baseName v)#1#0)+S_n*((baseName v)#1)_1));
+    phi J
     )
-)
-    
+
 
 
 TEST///
@@ -242,7 +358,7 @@ S = ZZ/101[x,y,z]
 I = ideal"x3,y4,z5,xy,xz"
 I = ideal"x3,y4,z2,xy, yz,xz"
 isLicciMonomialIdeal I
-
+isLicciMonomialIdeal ideal (x^3,y^2,z^2,x*y*z)
 
 
 I1 = ideal"x2,y3,z4,y,z"
@@ -1511,37 +1627,142 @@ load"Linkage.m2"
 test= L -> (
     for I in L list(
 	{I, isShiftLicciLike I, length res Ext^2(S^1/I,S^1/I) == 3}))
-truetrue = L -> (
-    for I in L list(
-	{I, isShiftLicciLike I, length res Ext^2(S^1/I,S^1/I) == 3}))
+
+
+truetrue = I -> (
+	isShiftLicciLike I and length res Ext^2(S^1/I,S^1/I) == 3)
+falsetrue = I -> (
+	not isShiftLicciLike I and length res Ext^2(S^1/I,S^1/I) == 3)
 
 kk = ZZ/32003
 S = kk[a,b,c,d]
 mm = ideal vars S
-monomialOrbits
-I0 = monomialIdeal (a^3)
-I1 = ideal apply(gens S, x -> x^3)
-J = trim ideal (gens (mm^3) %I1)
-elapsedTime II = orbitRepresentatives(S,I0,J,5);#II
-II3=select(II, K -> codim K == 3);#II3
-IICM=select(II3, K -> length res K == 3);#IICM
-netList (T = test IICM)
-betti res T_0_0
-isGenericallyCI T_0_0
+d = 4
+I0 = monomialIdeal (a^d)
+I1 = ideal apply(gens S, x -> x^d)
+J = trim ideal (gens (mm^d) %I1)
+elapsedTime II = orbitRepresentatives(S,I0,J,6);#II
+elapsedTime II3=select(II, K -> codim K == 3);#II3
+elapsedTime IICM=select(II3, K -> length res K == 3);#IICM
+elapsedTime select(IICM, I -> falsetrue I)
+elapsedTime T=select(IICM, I -> truetrue I);#T
+elapsedTime GCI =select(T, I-> isGenericallyCI I)
+elapsedTime T=select(GCI, I -> truetrue I)
+--for 6 mons of degree 4, all the genci strongly nonobs link in 1 step to aci
 
-netList (Tspecial =select(T, ell ->truetrue ell_0))
-netList(Tspecial/first)
-netList(IICM/res)
-isGenericallyCI = I -> (
-    P := presentation module (I' = trim I);
-    c := codim I';
-    n := numgens I';
-    c<codim minors (n-c, P))
-for I in (Tspecial/first) list isGenericallyCI I
+for I in  T list betti res I
+I = T_0 --links to aci
+A = ideal"a4,b2c2,c2d2+bd3";codim A
+I' = A:I
+I = T_1 --links to aci
+A = ideal"a4,b2c2,c2d2+bd3";codim A
+I' = A:I
+I = T_2 --links to aci
+A = ideal"a4,bc3,c3d+bd3";codim A
+I' = A:I
+ --trying for linkage equivalence in 3 variables, m-primary, monomial
+restart
+load"Linkage.m2"
 
-S3 = kk[a,b,c]
-phi = map(S3,S,{a,b,c,c})
-I3 = phi I
+kk = ZZ/32003
+S = kk[a,b,c]
+mm = ideal vars S
+d = 4
+I0 = ideal apply(gens S, x -> x^d)
+J = trim ideal (gens (mm^d) %I0)
+elapsedTime II = orbitRepresentatives(S,I0,J,7);#II
+#II
+elapsedTime T=for I in II list(
+    J := isLicciMonomialIdeal I;
+    if J == ideal 0_(ring I) then continue else J);#T
+elapsedTime rT = apply(T,  I-> weakPolarization I);#rT
+	
 
-degree Ext^2(S3^1/I3,S3^1/I3)
-degree (S3^1/I3)
+elapsedTime modules =apply(rT, J ->(
+R := ring J;
+F := res Ext^2(R^1/J, R^1/J);
+prune coker dual F.dd_4));#modules
+
+#modules
+needsPackage "Isomorphism"
+elapsedTime tt = flatten for i from 0 to 140 list for j from i+1 to 141 list 
+	{i,j,isIsomorphic( modules_i,modules_j** ring modules_i)}
+	;
+netList tt
+ttt = select(tt, t -> t_2 == true);#ttt
+	needsPackage "DirectSummands"
+ttt
+betti res T_3
+betti res T_8
+(p,m) = pureAndMixed T_8
+netList primaryDecomposition m
+elapsedTime kosHom8 = apply (6,i-> HH_(i+1) koszulComplex gens rT_8);
+elapsedTime kosHom3 = apply (6,i-> HH_(i+1) koszulComplex gens rT_3);
+
+degree((ring II_3)/II_3)
+apply (6, i-> degree(((ring rT_8)^1/ideal(last gens ring rT_8))**kosHom8_(i)))
+betti res II_3, betti res II_8
+degree((ring II_8)/II_3)
+degree(((ring rT_8)^1/ideal(last gens ring rT_8))**kosHom_1)
+
+I3 = II_3;I8 = sub(II_8, ring II_3);
+I3
+I8
+S=== ring I3
+S === ring I8
+use S
+K = ideal apply(2,i-> random(4, trim ideal (gens I8 % ideal"ab2c, ab3")))
+K3 = ideal apply(3,i-> random(4, trim ideal (gens I8 % ideal"ab2c, ab3")))
+G = S/K
+psi = map(G,S)
+Ibar3 = trim psi I3
+Ibar8 = trim psi I8
+isIsomorphic(module Ibar3, Hom(module Ibar8, G))
+betti res (K3:I3)
+betti res I3
+gens Ibar8 %Ibar3
+gens Ibar3 %Ibar8
+numgens ring polarize I3
+
+isIsomorphic (module Ibar3,module Ibar8)
+isIsomorphic (module Ibar8,module Ibar3)
+M = modules_0
+summands M
+netList oo
+M' = Ext^4(M,(ring M)^1)
+
+elapsedTime tt = apply(#modules,
+	i-> (M' := modules_i;
+	    phi := map(S,ring M',append(gens S, 0_S));
+	    {degree M', trim ann coker phi presentation M'}));
+#tt
+netList tt
+phi = map(S,ring M',append(gens S, 0_S))
+ann coker phi presentation M
+II_0: ann coker phi presentation M
+
+# unique modules
+omega = Ext^3(R^1/J, R^1)
+betti res ((module J)**omega)
+aJ = ann((module J)**omega)
+
+I == phi J
+gens ideal I % phi aJ
+(gens phi aJ) %ideal I
+
+elapsedTime mixes = apply(II, I->((pure,mix) = pureAndMixed I;
+	mix))
+umix = unique mixes;#umix
+betti res coker phi presentation Ext^4(Ext^4((module J)**omega, R^1),R^1)
+
+I = T_0
+betti res (Ext^2(S^1/I, S^1/I))
+codim (Ext^2(S^1/I, S^1/I))
+betti res I
+wT_0 = weakPolarization T_0
+wT_0 ==radical wT_0
+elapsedTime GCI =select(T, I-> isGenericallyCI I)
+elapsedTime T=select(GCI, I -> truetrue I)
+
+I = II_0
+isLicciMonomialIdeal I
