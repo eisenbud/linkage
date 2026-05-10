@@ -328,9 +328,29 @@ EE1 := for k from 4 to n list Ext^k((module I1)**omega1, R^1);
 EE2 := for k from 4 to n list Ext^k((module I2)**omega2, R^1);
 EE1' := for k from 4 to n list Ext^k(Hom(module I1,R^1/I1), R^1);
 EE2' := for k from 4 to n list Ext^k(Hom(module I2,R^1/I2), R^1);
-{{apply (n-3,i->isIsomorphic(EE1_i,EE2_i))},
-{apply (n-3,i->isIsomorphic(EE1'_i,EE2'_i))}}
+({apply (n-3,i->isIsomorphic(EE1_i,EE2_i))},
+{apply (n-3,i->isIsomorphic(EE1'_i,EE2'_i))})
 )
+
+koszulHomologyTest = (P1,P2) ->(
+    (I1,I2) :=  commonPolarization(P1,P2);
+    R:= ring I1;
+    n := numgens R;
+    H1 := HH_1 koszul gens I1;
+    H2 := HH_1 koszul gens I2;
+    EH1 := for i from 5 to n list Ext^i(H1, R^1);
+    EH2 := for i from 5 to n list Ext^i(H2, R^1);    
+    apply (n-4,i->isIsomorphic(EH1_i,EH2_i))
+    )
+linkedKoszulHomologyTest = (P1,P2) ->
+      koszulHomologyTest(P1,monomialLink1 P2)
+
+monomialLink1 = I -> (
+    purePowers = ideal for m in I_* list
+                 if isPurePower m then m else continue;
+    purePowers:I)
+    
+    
 
 ///
 S = ZZ/101[a,b,c]
@@ -338,6 +358,7 @@ m = a^4*b
 I1 = monomialIdeal (a^4*b)
 I2 = monomialIdeal"abc"
 commonPolarization (I1,I2)
+
 ///
 TEST///
 --monomial ideals where licci is NOT determined by betti
@@ -1740,18 +1761,31 @@ kk = ZZ/32003
 S = kk[a,b,c]
 mm = ideal vars S
 d = 4
-I0 = ideal apply(gens S, x -> x^d)
 I0 = monomialIdeal"a3,b4,c5"
-J = trim monomialIdeal (gens (mm^d) %I0)
 II = orbitRepresentatives (S,I0,{3,3,4,4,5,5});#II
 II = II/reducedForm;
 T = select (II,I-> I != 1);#T
+
 T = flatten for i from 0 to #T-2 list
         for j from i+1 to #T-1 list
         if II_i != II_j then (II_i, II_j) else
-	continue;
-apply(T_{0..10}, t -> test t)
+	continue;#T
 
+elapsedTime linkedT = flatten for i from 0 to #T -2 list
+        for j from i+1 to #T-1 list(
+	Ij' := monomialLink1 II_j;
+        if II_i != Ij' then (II_i, Ij') else
+	continue);#linkedT
+
+--HTest345 = apply(T, t -> koszulHomologyTest t);
+linkedHTest345 = apply(linkedT, t -> koszulHomologyTest t);
+	                
+netList Htest345
+elapsedTime test345 =  apply(T, t -> test t);
+select(Htest345, u -> all u)
+
+
+class test345    
 --indistinguishables = {{3, 8}, {5, 10}, {11, 45}, {13, 49}, {16, 26}, {16, 111}, {17, 27}, {17, 29}, {20,
        ------------------------------------------------------------------------------------
        30}, {23, 47}, {26, 111}, {27, 29}, {43, 60}, {43, 125}, {50, 120}, {59, 141}, {60,
@@ -1817,25 +1851,3 @@ Indist pairs after eliminating licci's and pairs actually equal
 ITAllIndices for powers 3,4,5 and 7 more quartics
 ITAllIndices = {50274, 50363, 50538, 50624, 52186, 53652, 53686, 53781, 53866, 54163, 54218, 54220, 54221, 54225, 54226, 54233}
 
-restart
-load "Linkage.m2"
-kk=ZZ/32003
-S = kk[a,b,c]
-I0 = ideal"a3,b4,c5"
-elapsedTime II = orbitRepresentatives(S,I0,{3,3,4,4,5});#II
-elapsedTime T=for I in II list(
-          J := isLicciMonomialIdeal I;
-          if J == ideal 1_(ring I) then continue else J);#T
-
-TNotEqual = flatten for i from 0 to #T-2 list
-                  for j from i+1 to #T-1 list
-      	    if T_i!=T_j then {i,j} else continue;
-
-elapsedTime indistinctPairs = for L in TNotEqual_{0..100} list(
-      	if all test(T_(L_0),T_(L_1)) then L else continue)
-
-TNotEqual_3
-test(T_1, T_8)
-
-viewHelp Complexes
-isLicciMonomialIdeal T_11
