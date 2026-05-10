@@ -108,6 +108,7 @@ needsPackage "DGAlgebras"
 needsPackage "LocalRings"
 needsPackage "AInfinity"
 needsPackage "CompleteIntersectionResolutions"
+needsPackage"Isomorphism"
 
 -*
 Conditions implied by licci: R= S/I (S RLR)
@@ -135,6 +136,11 @@ b. In the monomial case, is there a strengthening of 4 using the multi-grading?
 
 Construction: start with I a licci gen ci; J = geometric link; then I+J is gor and licci (of grade = grade I +1).
 *-
+omega = I -> (
+    c:=codim I;
+    Ext^c((ring I)^1/I, (ring I)^1)
+    )
+
 isGenericallyCI = I -> (
     P := presentation module (I' = trim I);
     c := codim I';
@@ -238,10 +244,9 @@ pureAndMixed Ideal := List => I' -> (
 monomialLink = I -> (
     (pure, mix) := pureAndMixed I;--hu I;
     pure: mix)
-  
 
-isLicciMonomialIdeal = method()
-isLicciMonomialIdeal Ideal := Ideal => I' ->(
+reducedForm= method()
+reducedForm Ideal := Ideal => I' ->(
     --double link
     I := monomialIdeal I';
     while true do(
@@ -265,23 +270,75 @@ isLicciMonomialIdeal I
 pureAndMixed I
 ///
 
-weakPolarization = method(Options => {VariableName => "X"})
+weakPolarization = method(Options => {"AllVars" => false, VariableName => X})
 weakPolarization Ideal := o -> I ->(
     I' := if class I === Ideal then monomialIdeal I else I;
     G0 := gens ring I';
     n := #G0;
-    X := o#VariableName;
-    G1 := append(G0, X);
-    S := coefficientRing ring I [G1];
+    if o#"AllVars" == true then
+    G1 := G0|toList(X_0..X_(#G0 -1))
+                           else G1 = append(G0, X_0);
+    S' := coefficientRing ring I [G1];
     J := polarize I';
     R := ring J;
     V := gens R;
-    phi := map(S,R,apply(V, v -> S_((baseName v)#1#0)+S_n*((baseName v)#1)_1));
+    if o#"AllVars" == true then
+    phi := map(S',R,apply(V,
+	    v -> S'_((baseName v)#1#0)+
+	    S'_(n+(baseName v)#1#0)*(baseName v)#1#1))
+                           else
+    phi = map(S',R,apply(V,
+	    v -> S'_((baseName v)#1#0)+
+	    S'_n*(baseName v)#1#1));
     phi J
     )
 
+isPurePower = m -> (
+    M = ideal m;
+    G = gens ring m;
+    L = for x in G list saturate(M,x);
+    #select(L, ell-> ell==M) == #G -1)
+
+commonPolarization = (I1,I2) ->(
+    S = ring I1;
+    if not S === ring I2 then error"ideals should be from same ring";
+    L1 = flatten (exponents \ for m in I1_* list  m);
+    L2 :=flatten( exponents \ for m in I2_* list  m);
+    exps := apply(numgens ring I1, i-> for ell in L1|L2 list ell_i);
+    maxes := exps/max;
+    R = ring polarize(
+    (monomialIdeal product apply(numgens S, i -> S_i^(maxes_i))));
+    I1' := monomialIdeal sub(polarize I1, R);
+    I2' := monomialIdeal sub(polarize I2, R);
+    (I1',I2')
+    )
 
 
+test=(P1,P2) ->(
+   --assume:
+   --licci's are eliminated;
+   --P1,P2 in reduced form;
+   --P1 !=P2
+(I1,I2) :=  commonPolarization(P1,P2);
+R:= ring I1;
+n := numgens R;
+omega1 := omega I1;
+omega2 := omega I2;
+EE1 := for k from 4 to n list Ext^k((module I1)**omega1, R^1);
+EE2 := for k from 4 to n list Ext^k((module I2)**omega2, R^1);
+EE1' := for k from 4 to n list Ext^k(Hom(module I1,R^1/I1), R^1);
+EE2' := for k from 4 to n list Ext^k(Hom(module I2,R^1/I2), R^1);
+{{apply (n-3,i->isIsomorphic(EE1_i,EE2_i))},
+{apply (n-3,i->isIsomorphic(EE1'_i,EE2'_i))}}
+)
+
+///
+S = ZZ/101[a,b,c]
+m = a^4*b
+I1 = monomialIdeal (a^4*b)
+I2 = monomialIdeal"abc"
+commonPolarization (I1,I2)
+///
 TEST///
 --monomial ideals where licci is NOT determined by betti
 restart
@@ -289,7 +346,9 @@ load "Linkage.m2"
 --example of Boocher
 kk = ZZ/101
 S = kk[a,b,c, Degrees => {{1,0,0}, {0,1,0}, {0,0,1}}]
-I0 = ideal"a3,b3,c3"
+I0 = monomialIdeal"a3,b3,c3"
+weakPolarization (I0, "AllVars" => false)
+
 I1 = ideal"bc2, a2bc, a2b2"
 I2 = ideal"bc2, a2c2, a2b2"
 J1 = I0+I1
@@ -1624,16 +1683,6 @@ flatten degrees F_(length F)
 restart
 load"Linkage.m2"
 --viewHelp MonomialOrbits
-test= L -> (
-    for I in L list(
-	{I, isShiftLicciLike I, length res Ext^2(S^1/I,S^1/I) == 3}))
-
-
-truetrue = I -> (
-	isShiftLicciLike I and length res Ext^2(S^1/I,S^1/I) == 3)
-falsetrue = I -> (
-	not isShiftLicciLike I and length res Ext^2(S^1/I,S^1/I) == 3)
-
 kk = ZZ/32003
 S = kk[a,b,c,d]
 mm = ideal vars S
@@ -1641,6 +1690,7 @@ d = 4
 I0 = monomialIdeal (a^d)
 I1 = ideal apply(gens S, x -> x^d)
 J = trim ideal (gens (mm^d) %I1)
+
 elapsedTime II = orbitRepresentatives(S,I0,J,6);#II
 elapsedTime II3=select(II, K -> codim K == 3);#II3
 elapsedTime IICM=select(II3, K -> length res K == 3);#IICM
@@ -1660,109 +1710,132 @@ I' = A:I
 I = T_2 --links to aci
 A = ideal"a4,bc3,c3d+bd3";codim A
 I' = A:I
- --trying for linkage equivalence in 3 variables, m-primary, monomial
+
+
+--trying for linkage equivalence in 3 variables, m-primary, monomial
 restart
 load"Linkage.m2"
 
+prepMomonialPair = (P1,P2) ->(
+I3 := isLicciMonomialIdeal P1;
+I8 :=  isLicciMonomialIdeal P2;
+--I3' := weakPolarization(I3, "AllVars" => true);
+--I8' := sub(weakPolarization(I8, "AllVars" => true), ring I3');
+I3' := polarize I3;
+I8' := polarize I8;
+R := coefficientRing ring I3[z_{0,0}..z_{2,3}];
+I3' = sub (I3', R);
+I8' = sub (I8', R);
+(I3', I8'))
+
+
+
+indistinctPairs = (T,LL) -> (
+    for L in LL list(
+	test(T_(L_0),T_(L_1))))
+viewHelp MonomialOrbits
+restart
+load"Linkage.m2"
 kk = ZZ/32003
 S = kk[a,b,c]
 mm = ideal vars S
 d = 4
 I0 = ideal apply(gens S, x -> x^d)
-J = trim ideal (gens (mm^d) %I0)
-elapsedTime II = orbitRepresentatives(S,I0,J,7);#II
-#II
+I0 = monomialIdeal"a3,b4,c5"
+J = trim monomialIdeal (gens (mm^d) %I0)
+II = orbitRepresentatives (S,I0,{3,3,4,4,5,5});#II
+II = II/reducedForm;
+T = select (II,I-> I != 1);#T
+T = flatten for i from 0 to #T-2 list
+        for j from i+1 to #T-1 list
+        if II_i != II_j then (II_i, II_j) else
+	continue;
+apply(T_{0..10}, t -> test t)
+
+--indistinguishables = {{3, 8}, {5, 10}, {11, 45}, {13, 49}, {16, 26}, {16, 111}, {17, 27}, {17, 29}, {20,
+       ------------------------------------------------------------------------------------
+       30}, {23, 47}, {26, 111}, {27, 29}, {43, 60}, {43, 125}, {50, 120}, {59, 141}, {60,
+       ------------------------------------------------------------------------------------
+       125}, {65, 80}, {68, 76}, {73, 109}, {74, 86}, {84, 88}, {87, 101}, {92, 131}, {96,
+       ------------------------------------------------------------------------------------
+       102}}
+
+test(T_3,T_8)
+
+test (T_0,T_1)
+elapsedTime IT = indistinctPairs TNotEqual_{0..1000};
+L = TNotEqual_{0..1000};
+possiblyLinked = select(L, ell->all test(T_(ell_0), T_ell_1))
+possiblyLinked == {{0, 4}}
+
+I1 =T_0
+I2 =T_4
+degree (S^1/I1)
+degree (S^1/I2)
+I = intersect(I1, I2)
+rs2 = ideal(random(3,I), random(4,I))
+isIsomorphic (module(I1/rs2), module(I2/rs2))
+betti res I1
+betti res I2
+rs = ideal(random(3,I1), random(4,I1), random(5,I1));codim rs
+rs = ideal"a3,b4,c5";
+I1' = rs:I1
+degree (S^1/I1')
+degree (S^1/I2)
+for i from 1 to 4 list degree HH_i (koszul gens I1)
+for i from 1 to 4 list degree HH_i (koszul gens I1')
+for i from 1 to 4 list degree HH_i (koszul gens I2)
+360-10*34
+279-10*26
+TNotEqual_10
+test(T_0,T_11)
+P1 = T_0;P2=T_11
+ netList IT
+TNotEqual_0
+elapsedTime Q = test(3,8)
+elapsedTime netList for L in indistinguishables list test(L_0,L_1)
+isLicciMonomialIdeal II_13
+isLicciMonomialIdeal II_49
+{{0, 15}, {2, 17}, {3, 18}, {6, 20}, {7, 21}}
+TNotEqual =flatten for i from 0 to #T-2 list
+                   for j from i+1 to #T-1 list
+		   if T_i!=T_j then {i,j} else continue;
+TNotEqual		   
+
+indistinctPairs = LL -> (
+          for L in LL list(
+      	test(II_(L_0),II_(L_1))))
+
+o68 = indistinctPairs
+
+o68 : FunctionClosure
+
+i69 : elapsedTime IT = indistinctPairs TNotEqual;
+ -- 82
+
+Indist pairs after eliminating licci's and pairs actually equal
+ITAllIndices for powers 3,4,5 and 7 more quartics
+ITAllIndices = {50274, 50363, 50538, 50624, 52186, 53652, 53686, 53781, 53866, 54163, 54218, 54220, 54221, 54225, 54226, 54233}
+
+restart
+load "Linkage.m2"
+kk=ZZ/32003
+S = kk[a,b,c]
+I0 = ideal"a3,b4,c5"
+elapsedTime II = orbitRepresentatives(S,I0,{3,3,4,4,5});#II
 elapsedTime T=for I in II list(
-    J := isLicciMonomialIdeal I;
-    if J == ideal 0_(ring I) then continue else J);#T
-elapsedTime rT = apply(T,  I-> weakPolarization I);#rT
-	
+          J := isLicciMonomialIdeal I;
+          if J == ideal 1_(ring I) then continue else J);#T
 
-elapsedTime modules =apply(rT, J ->(
-R := ring J;
-F := res Ext^2(R^1/J, R^1/J);
-prune coker dual F.dd_4));#modules
+TNotEqual = flatten for i from 0 to #T-2 list
+                  for j from i+1 to #T-1 list
+      	    if T_i!=T_j then {i,j} else continue;
 
-#modules
-needsPackage "Isomorphism"
-elapsedTime tt = flatten for i from 0 to 140 list for j from i+1 to 141 list 
-	{i,j,isIsomorphic( modules_i,modules_j** ring modules_i)}
-	;
-netList tt
-ttt = select(tt, t -> t_2 == true);#ttt
-	needsPackage "DirectSummands"
-ttt
-betti res T_3
-betti res T_8
-(p,m) = pureAndMixed T_8
-netList primaryDecomposition m
-elapsedTime kosHom8 = apply (6,i-> HH_(i+1) koszulComplex gens rT_8);
-elapsedTime kosHom3 = apply (6,i-> HH_(i+1) koszulComplex gens rT_3);
+elapsedTime indistinctPairs = for L in TNotEqual_{0..100} list(
+      	if all test(T_(L_0),T_(L_1)) then L else continue)
 
-degree((ring II_3)/II_3)
-apply (6, i-> degree(((ring rT_8)^1/ideal(last gens ring rT_8))**kosHom8_(i)))
-betti res II_3, betti res II_8
-degree((ring II_8)/II_3)
-degree(((ring rT_8)^1/ideal(last gens ring rT_8))**kosHom_1)
+TNotEqual_3
+test(T_1, T_8)
 
-I3 = II_3;I8 = sub(II_8, ring II_3);
-I3
-I8
-S=== ring I3
-S === ring I8
-use S
-K = ideal apply(2,i-> random(4, trim ideal (gens I8 % ideal"ab2c, ab3")))
-K3 = ideal apply(3,i-> random(4, trim ideal (gens I8 % ideal"ab2c, ab3")))
-G = S/K
-psi = map(G,S)
-Ibar3 = trim psi I3
-Ibar8 = trim psi I8
-isIsomorphic(module Ibar3, Hom(module Ibar8, G))
-betti res (K3:I3)
-betti res I3
-gens Ibar8 %Ibar3
-gens Ibar3 %Ibar8
-numgens ring polarize I3
-
-isIsomorphic (module Ibar3,module Ibar8)
-isIsomorphic (module Ibar8,module Ibar3)
-M = modules_0
-summands M
-netList oo
-M' = Ext^4(M,(ring M)^1)
-
-elapsedTime tt = apply(#modules,
-	i-> (M' := modules_i;
-	    phi := map(S,ring M',append(gens S, 0_S));
-	    {degree M', trim ann coker phi presentation M'}));
-#tt
-netList tt
-phi = map(S,ring M',append(gens S, 0_S))
-ann coker phi presentation M
-II_0: ann coker phi presentation M
-
-# unique modules
-omega = Ext^3(R^1/J, R^1)
-betti res ((module J)**omega)
-aJ = ann((module J)**omega)
-
-I == phi J
-gens ideal I % phi aJ
-(gens phi aJ) %ideal I
-
-elapsedTime mixes = apply(II, I->((pure,mix) = pureAndMixed I;
-	mix))
-umix = unique mixes;#umix
-betti res coker phi presentation Ext^4(Ext^4((module J)**omega, R^1),R^1)
-
-I = T_0
-betti res (Ext^2(S^1/I, S^1/I))
-codim (Ext^2(S^1/I, S^1/I))
-betti res I
-wT_0 = weakPolarization T_0
-wT_0 ==radical wT_0
-elapsedTime GCI =select(T, I-> isGenericallyCI I)
-elapsedTime T=select(GCI, I -> truetrue I)
-
-I = II_0
-isLicciMonomialIdeal I
+viewHelp Complexes
+isLicciMonomialIdeal T_11
