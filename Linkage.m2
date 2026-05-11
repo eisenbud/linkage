@@ -2086,3 +2086,55 @@ o80 = {(monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a
       2,c^3)), (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
       (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
       (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3))}
+firstbad345 = positions(test345Output, L -> all L_0_0);#firstbad345
+
+ firstbadpairs =toString T_firstbad345
+o89 = {(monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,b^2*c^2,a*b*c^3,a*c^4,c^5),monomialIdeal(a^3,a^2*b^2,b^3,b^2*c,a^2*c^
+      2,a*b*c^3,a*c^4,c^5)), (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,b^2*c^2,a*b*c^3,b*c^4,c^5),monomialIdeal(a^3,a
+      ^2*b^2,b^3,b^2*c,a^2*c^2,a*b*c^3,b*c^4,c^5)),
+      (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,b^2*c^2,a*c^4,b*c^4,c^5),monomialIdeal(a^3,a^2*b^2,b^3,b^2*c,a^2*c^2,
+      a*c^4,b*c^4,c^5)), (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,a*b*c^3,b^2*c^3,c^4),monomialIdeal(a^3,a^2*b^2,b^3
+      ,b^2*c,a^2*c^3,a*b*c^3,c^4)), (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^
+      2,c^3)), (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3))}
+
+secondbad345 = positions(test345Output, L -> all L_1_0);#secondbad345secondbad345 = positions(test345Output, L -> all L_1_0);#secondbad345secondbad345 = positions(test345Output, L -> all L_1_0);#secondbad345
+secondbadpairs =toString T_secondbad345
+
+o90 = {(monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,b^2*c^2,a*b*c^3,a*c^4,c^5),monomialIdeal(a^3,a^2*b^2,b^3,b^2*c,a^2*c^
+      2,a*b*c^3,a*c^4,c^5)), (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,b^2*c^2,a*b*c^3,b*c^4,c^5),monomialIdeal(a^3,a
+      ^2*b^2,b^3,b^2*c,a^2*c^2,a*b*c^3,b*c^4,c^5)),
+      (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,b^2*c^2,a*c^4,b*c^4,c^5),monomialIdeal(a^3,a^2*b^2,b^3,b^2*c,a^2*c^2,
+      a*c^4,b*c^4,c^5)), (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,a*b*c^3,b^2*c^3,c^4),monomialIdeal(a^3,a^2*b^2,b^3
+      ,b^2*c,a^2*c^3,a*b*c^3,c^4)), (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^
+      2,c^3)), (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3))}
+bad345
+firstbad345
+secondbad345
