@@ -308,8 +308,8 @@ commonPolarization = (I1,I2) ->(
     maxes := exps/max;
     R = ring polarize(
     (monomialIdeal product apply(numgens S, i -> S_i^(maxes_i))));
-    I1' := monomialIdeal sub(polarize I1, R);
-    I2' := monomialIdeal sub(polarize I2, R);
+    I1' := monomialIdeal sub(polarize monomialIdeal I1, R);
+    I2' := monomialIdeal sub(polarize monomialIdeal I2, R);
     (I1',I2')
     )
 
@@ -336,11 +336,11 @@ koszulHomologyTest = (P1,P2) ->(
     (I1,I2) :=  commonPolarization(P1,P2);
     R:= ring I1;
     n := numgens R;
-    H1 := HH_1 koszul gens I1;
-    H2 := HH_1 koszul gens I2;
-    EH1 := for i from 5 to n list Ext^i(H1, R^1);
-    EH2 := for i from 5 to n list Ext^i(H2, R^1);    
-    apply (n-4,i->isIsomorphic(EH1_i,EH2_i))
+    H1 := HH_(numgens I1 - 4) koszul gens I1;
+    H2 := HH_(numgens I2 - 4) koszul gens I2;
+    EH1 := for i from 6 to n list Ext^i(H1, R^1);
+    EH2 := for i from 6 to n list Ext^i(H2, R^1);    
+    apply (n-5,i->isIsomorphic(EH1_i,EH2_i))
     )
 linkedKoszulHomologyTest = (P1,P2) ->
       koszulHomologyTest(P1,monomialLink1 P2)
@@ -902,6 +902,158 @@ betti res I
 I1 = generalHomogeneousLinkage({2,2,3},I)
 betti res I1
 ///
+
+-- isShelling: decide whether an ordered list of facets is a shelling
+--   of the pure simplicial complex they generate.
+-- Facets are given as Lists of vertex labels (any comparable type).
+isShelling = method()
+isShelling List := Boolean => facetList -> (
+    F := apply(facetList, f -> set f);
+    n := #F;
+    if n <= 1 then return true;
+    d := #(F#0);
+    if not all(F, f -> #f == d) then (
+        << "-- not pure: facets have unequal cardinality" << endl;
+        return false
+    );
+    for i from 1 to n-1 do (
+        -- "free" vertices of F_i: those v with F_i \ {v} contained in some earlier F_k
+        freeV := set select(toList F#i, v ->
+            any(0..i-1, k -> isSubset(F#i - set{v}, F#k)));
+        -- shelling condition: for each j < i, some free vertex must lie OUTSIDE F_i ∩ F_j
+        for j from 0 to i-1 do (
+            if isSubset(freeV, F#i * F#j) then (
+                << "-- not a shelling at step i = " << i << ", j = " << j << endl;
+                << "--   F_i        = " << toList F#i << endl;
+                << "--   F_j        = " << toList F#j << endl;
+                << "--   F_i ∩ F_j  = " << toList(F#i * F#j) << endl;
+                << "--   free verts = " << toList freeV << endl;
+                return false
+            )
+        )
+    );
+    true
+)
+
+
+-- Test if appending newFacet to the partial shelling 'chosen' (a list of Sets)
+-- keeps the shelling property.
+canExtend = (chosen, newFacet) -> (
+    i := #chosen;
+    if i == 0 then return true;
+    -- "free" vertices of newFacet: those v such that newFacet \ {v} ⊆ some chosen#k
+    freeV := set select(toList newFacet, v ->
+        any(0..i-1, k -> isSubset(newFacet - set{v}, chosen#k)));
+    if #freeV == 0 then return false;
+    -- for every previous facet, some free vertex must lie outside the intersection
+    all(0..i-1, j -> not isSubset(freeV, newFacet * chosen#j))
+);
+-- Recursive backtracker: returns a complete shelling (list of Sets) or null.
+findShellingRec = (allFacets, used, chosen) -> (
+    n := #allFacets;
+    if #chosen == n then return chosen;
+    for idx from 0 to n-1 do (
+        if not used#idx and canExtend(chosen, allFacets#idx) then (
+            used#idx = true;
+            result := findShellingRec(allFacets, used, append(chosen, allFacets#idx));
+            if result =!= null then return result;
+            used#idx = false
+        )
+    );
+    null
+);
+findShelling = method()
+findShelling List := facetList -> (
+    F := apply(facetList, f -> set f);
+    n := #F;
+    if n == 0 then return {};
+    d := #(F#0);
+    if not all(F, f -> #f == d) then (
+        << "-- not pure: facets have unequal cardinality" << endl;
+        return null
+    );
+    used := new MutableList from toList(n : false);
+    result := findShellingRec(F, used, {});
+    if result === null then null else apply(result, s -> sort toList s)
+);
+-*Examples
+-- 2-sphere (boundary of tetrahedron) -- shellable
+findShelling {{2,3,4}, {1,3,4}, {1,2,4}, {1,2,3}}
+-- one shelling: e.g. {{2,3,4}, {1,3,4}, {1,2,4}, {1,2,3}}
+-- Polarization of m^2 in k[x,y,z]: edge ideal of W(K_3).
+-- Vertices a1,a2,b1,b2,c1,c2 (= x_{i,1}, x_{i,2}).
+-- Facets of the independence complex:
+F = {
+    {"a1","b2","c2"},
+    {"b1","a2","c2"},
+    {"c1","a2","b2"},
+    {"a2","b2","c2"}
+};
+findShelling F
+-- e.g. {{"a2","b2","c2"}, {"a1","b2","c2"}, {"b1","a2","c2"}, {"c1","a2","b2"}}
+-- Two disjoint edges: not shellable
+findShelling {{1,2}, {3,4}}        -- null
+-- Non-pure input: rejected
+findShelling {{1,2,3}, {1,2}}      -- null (with message)
+Notes and small optimizations
+Memoize the "free vertex" computation. Inside canExtend you recompute, for each candidate, which of its codim-1 faces sit in the union of already-chosen facets. If your facet count is large, keep a running data structure that, for each not-yet-placed facet 
+G
+G and each vertex 
+v
+∈
+G
+v∈G, records whether 
+G
+∖
+{
+v
+}
+G∖{v} has been "covered" by some placed facet. Updating this on push/pop is 
+O
+(
+d
+⋅
+n
+)
+O(d⋅n) per step.
+Order candidates by #freeV descending. Facets with many free vertices are likely to extend cleanly and to leave fewer dead ends downstream.
+**Fix 
+F
+1
+F 
+1
+​
+ .** By Björner, if 
+Δ
+Δ is shellable then *every* facet starts some shelling, so fixing the first facet (and only iterating from index 1) gives a 
+1
+/
+n
+1/n speedup without losing completeness.
+Reporting a witness of non-shellability. Right now the routine returns null for "no shelling found." If you want a certificate of non-shellability (rather than just exhaustion), Björner–Wachs's h-vector test or checking that some link fails to be CM is a separate computation — happy to wire that in if useful.
+Performance for your polarizations. For 
+pol
+⁡
+(
+m
+k
+)
+pol(m 
+k
+ ) at 
+n
+=
+3
+n=3, 
+k
+=
+3
+k=3 the complex has 10 facets in 9 variables — backtracking finishes instantly. For larger 
+n
+,
+k
+n,k the facet count grows combinatorially and you'd want the memoization above.
+*-
 end--
 
 --Ulrich licci Golod example
@@ -1781,9 +1933,13 @@ elapsedTime linkedT = flatten for i from 0 to #T -2 list
 linkedHTest345 = apply(linkedT, t -> koszulHomologyTest t);
 	                
 netList Htest345
-elapsedTime test345 =  apply(T, t -> test t);
+elapsedTime Htest345 =  apply(T_{0..10}, t -> koszulHomologyTest t);
 select(Htest345, u -> all u)
-
+failed345 ={34774, 34984, 35092, 35132, 37967, 38078, 38118, 118525, 118633, 118673, 120354, 120394, 142891, 143081,
+      ----------------------------------------------------------------------------------------------------------
+      143270, 144567, 144889, 144929, 145457, 151401}
+more345= T_failed345
+apply(T_failed345, p-> test p)
 
 class test345    
 --indistinguishables = {{3, 8}, {5, 10}, {11, 45}, {13, 49}, {16, 26}, {16, 111}, {17, 27}, {17, 29}, {20,
@@ -1851,3 +2007,82 @@ Indist pairs after eliminating licci's and pairs actually equal
 ITAllIndices for powers 3,4,5 and 7 more quartics
 ITAllIndices = {50274, 50363, 50538, 50624, 52186, 53652, 53686, 53781, 53866, 54163, 54218, 54220, 54221, 54225, 54226, 54233}
 
+I = II_(random 500)
+J = polarize I
+numgens ring J
+K = koszul gens J
+for i from 0 to 6 list pdim(HH_i K)
+
+U = kk[w,x,y,z]
+I0 = ideal"w3,x3,y3,z4"
+II = orbitRepresentatives(U,I0,{4,5,5,5});#II
+elapsedTime IIP = apply(II, I-> polarize I);
+testDepths = I->(
+    n := numgens ring I;
+    K := koszul gens I;
+    for i from 0 to numgens I - codim I -1 list(n - pdim (HH_i K))
+    )
+    
+elapsedTime HIP = for I in IIP_{0..500} list testDepths IIP_0;
+all apply(HIP, H -> H == {9,7,7,9})
+symmetricAlgebraIdeal(I)
+isPrime oo
+testDepths weakPolarization II_0
+
+restart
+load"Linkage.m2"
+kk = ZZ/101
+S = kk[a,b,c]
+U = kk[a,b,c,d]
+II = orbitRepresentatives(U,I0,{4,5,5,5});#II
+elapsedTime IIP = apply(II, I-> polarize I);
+testDepths = I->(
+    n := numgens ring I;
+    K := koszul gens I;
+    for i from 0 to numgens I - codim I -1 list(n - pdim (HH_i K))
+    )
+I = polarize (monomialIdeal vars S)^2
+R = (ring I)/I
+R = ring I
+testDepths I
+Hs = for i from 1 to (numgens I -codim I -1) list HH_i(koszul gens I);
+res (prune (Hs_0), LengthLimit => 3)
+res ((Hs_1), LengthLimit => 3)
+
+netList ((decompose ann HH_3 koszul gens I)/(I->I_*))
+for i from 1 to (numgens I -codim I -1) list I == ann HH_i(koszul gens I)
+netList for i from 1 to numgens I -codim I -1 list ((ass HH_i koszul gens I)/(I->I_*)
+reesIdeal I
+elapsedTime HIP = for I in IIP_{0..500} list testDepths IIP_0;
+all apply(HIP, H -> H == {9,7,7,9})
+symmetricAlgebraIdeal(I)
+isPrime 
+testDepths weakPolarization II_0
+
+test345Output = o15;
+all test345Output_0_1_0
+alltrue345 = select(test345Output, L -> all L_0_0 and all L_1_0);#alltrue345
+bad345 = positions(test345Output, L -> all L_0_0 and all L_1_0);
+badPairs345 = T_bad345
+toString badPairs345
+o80 = {(monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,b^2*c^2,a*b*c^3,a*c^4,c^5),monomialIdeal(a^3,a^2*b^2,b^3,b^2*c,a^2*c^
+      2,a*b*c^3,a*c^4,c^5)), (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,b^2*c^2,a*b*c^3,b*c^4,c^5),monomialIdeal(a^3,a
+      ^2*b^2,b^3,b^2*c,a^2*c^2,a*b*c^3,b*c^4,c^5)),
+      (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,b^2*c^2,a*c^4,b*c^4,c^5),monomialIdeal(a^3,a^2*b^2,b^3,b^2*c,a^2*c^2,
+      a*c^4,b*c^4,c^5)), (monomialIdeal(a^3,a^2*b^2,b^3,a^2*c,a*b*c^3,b^2*c^3,c^4),monomialIdeal(a^3,a^2*b^2,b^3
+      ,b^2*c,a^2*c^3,a*b*c^3,c^4)), (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^
+      2,c^3)), (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3),monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3)),
+      (monomialIdeal(a^2,a*b,b^2,a*c,b*c^2,c^3),monomialIdeal(a^2,a*b,b^2,b*c,a*c^2,c^3))}
